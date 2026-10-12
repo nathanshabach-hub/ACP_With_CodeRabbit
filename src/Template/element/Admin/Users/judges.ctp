@@ -1,0 +1,155 @@
+<?php echo $this->Html->script('facebox.js'); ?>
+<?php echo $this->Html->css('facebox.css'); ?>
+<script type="text/javascript">
+    $(document).ready(function ($) {
+        $('.close_image').hide();
+        $('a[rel*=facebox]').facebox({
+            loadingImage: '<?php echo HTTP_IMAGE ?>/loading.gif',
+            closeImage: '<?php echo HTTP_IMAGE ?>/close.png'
+        })
+    })            
+</script>
+
+<div class="admin_loader" id="loaderID"><?php echo $this->Html->image('loader_large_blue.gif'); ?></div>
+<?php if (!$users->isEmpty()) { ?> 
+    <div class="panel-body admin-data-panel">
+        <div class="ersu_message"> <?php echo $this->Flash->render() ?></div>
+    <?php echo $this->Form->create(null, ['id' => 'actionFrom', "method" => "Post"]); ?>
+        <section id="no-more-tables" class="lstng-section admin-data-section">
+            <div class="topn admin-data-topn">
+                <div class="topn_left">Judges List</div>
+                <div class="topn_right ajshort" id="pagingLinks" align="right">
+                    <?php
+                    echo $this->Paginator->counter(['model' => 'Users']);
+                    echo $this->Paginator->prev('« Prev');
+                    echo $this->Paginator->numbers();
+                    echo $this->Paginator->next('Next »');
+                    ?>
+                </div>
+            </div>   
+
+            <div class="tbl-resp-listing admin-data-table-wrap">
+                <table class="table table-bordered table-striped table-condensed cf admin-data-table">
+                    <thead class="cf ajshort">
+                        <tr>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('first_name', 'First Name'); ?></th>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('middllast_name', 'Surname'); ?></th>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('email_address', 'Email'); ?></th>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('previous_convention_experience', 'Previous Experience'); ?></th>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('non_convention_experience', 'Non-conv Experience'); ?></th>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('created', 'Sign Up Date'); ?></th>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('activation_status', 'Verified'); ?></th>
+                            <th class="sorting_paging"><?php echo $this->Paginator->sort('status', 'Status'); ?></th>
+                            <th class="action_dvv"><i class=" fa fa-gavel"></i> Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($users as $user) { ?>
+                            <tr>
+                                <td data-title="First Name"><?php echo $user->first_name ? $user->first_name : 'N/A'; ?></td>
+                                <td data-title="Surname"><?php echo $user->last_name ? $user->last_name : 'N/A'; ?></td>
+                                <td data-title="Email Address"><?php echo $user->email_address ? $user->email_address : 'N/A'; ?></td>
+                                <td data-title="Previous Experience"><?php echo $user->previous_convention_experience ? $user->previous_convention_experience : 'N/A'; ?></td>
+                                <td data-title="Non-conv Experience"><?php echo $user->non_convention_experience ? $user->non_convention_experience : 'N/A'; ?></td>
+                                <td data-title="Sign Up Date"><?php echo $user->created->format('M d, Y'); ?></td>
+                                <td data-title="Verified">
+                                    <?php
+                                    if($user->status != 2)
+                                    {
+                                        if($user->activation_status)
+                                            echo '<span class="judge-status-pill judge-status-verified">Verified</span>';
+                                        else
+                                            echo '<span class="judge-status-pill judge-status-unverified">Not verified</span>';
+                                    }
+                                    ?>
+                                </td>
+                                
+                                <td data-title="Status">
+                                    <?php
+                                    if($user->status == 0)
+                                        echo '<span class="judge-status-pill judge-status-inactive">Inactive</span>';
+                                    else if($user->status == 1)
+                                        echo '<span class="judge-status-pill judge-status-active">Active</span>';
+                                    else if($user->status == 2)
+                                        echo '<span class="judge-status-pill judge-status-archived">Archive</span>';
+                                    ?>
+                                </td>
+                                
+                                <td data-title="Action">
+                                    <div class="admin-data-actions">
+                                    <?php
+                                    echo $this->Html->link('<i class="fa fa-pencil"></i>', ['controller' => 'users', 'action' => 'editjudge', $user->slug], [ 'escape' => false, 'title' => 'Edit Judge', 'class' => 'btn btn-info btn-xs action-list admin-data-action-btn']);
+
+                                    if($user->activation_status == 0)
+                                    {
+                                        echo $this->Html->link('<i class="fa fa-check-circle"></i>', ['controller' => 'users', 'action' => 'verifyaccount', $user->slug, 'judges'], [ 'escape' => false, 'title' => 'Mark as verified', 'class' => 'btn btn-success btn-xs action-list admin-data-action-btn', 'confirm' => 'Mark this judge account as verified?']);
+                                    }
+                                    else
+                                    {
+                                        echo $this->Html->link('<i class="fa fa-unlock"></i>', ['controller' => 'users', 'action' => 'unverifyaccount', $user->slug, 'judges'], [ 'escape' => false, 'title' => 'Mark as unverified', 'class' => 'btn btn-warning btn-xs action-list admin-data-action-btn', 'confirm' => 'Mark this judge account as unverified?']);
+                                    }
+
+                                    if($user->status == 0)
+                                    {
+                                        echo $this->Html->link('<i class="fa fa-check"></i>', ['controller' => 'users', 'action' => 'activatejudge', $user->slug], [ 'escape' => false, 'title' => 'Activate Judge', 'class' => 'btn btn-success btn-xs action-list admin-data-action-btn', 'confirm' => 'Activate this judge account?']);
+                                    }
+                                    elseif($user->status == 1)
+                                    {
+                                        echo $this->Html->link('<i class="fa fa-ban"></i>', ['controller' => 'users', 'action' => 'deactivatejudge', $user->slug], [ 'escape' => false, 'title' => 'Deactivate Judge', 'class' => 'btn btn-warning btn-xs action-list admin-data-action-btn', 'confirm' => 'Deactivate this judge account?']);
+                                    }
+
+                                    if($user->status == 1)
+                                    {
+                                        echo $this->Html->link('<i class="fa fa-trash-o"></i>', ['controller' => 'users', 'action' => 'archivejudge', $user->slug], [ 'escape' => false, 'title' => 'Archive', 'class' => 'btn btn-danger btn-xs action-list delete-list admin-data-action-btn', 'confirm' => 'Are you sure you want to archive this judge?']);
+                                    }
+
+                                    if (!empty($canSuperAdminImpersonate) && (int)$user->status !== 2) {
+                                        echo $this->Html->link('<i class="fa fa-sign-in"></i>', ['controller' => 'users', 'action' => 'loginasuser', $user->id], [
+                                            'escape' => false,
+                                            'title' => 'Login As',
+                                            'class' => 'btn btn-default btn-xs action-list admin-data-action-btn',
+                                            'confirm' => 'Login as this judge account now?',
+                                            'target' => '_blank',
+                                            'rel' => 'noopener noreferrer'
+                                        ]);
+                                    }
+                                    
+                                    if($user->status == 2)
+                                    {
+                                        echo $this->Html->link('<i class="fa fa-retweet"></i>', ['controller' => 'users', 'action' => 'restorejudge', $user->slug], [ 'escape' => false, 'title' => 'Restore', 'class' => 'btn btn-danger btn-xs action-list delete-list admin-data-action-btn', 'confirm' => 'Are you sure you want to restore this judge?']);
+                                    }
+                                    ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="search_frm" style="display:none;">
+            <button type="button" name="chkRecordId" onclick="checkAll(true);"  class="btn btn-info">Select All</button>
+            <button type="button" name="chkRecordId" onclick="checkAll(false);" class="btn btn-info">Unselect All</button>
+            <?php
+            $arr = array(
+                "" => "Action for selected record",
+                'Activate' => "Activate",
+                'Deactivate' => "Deactivate",
+            );
+            ?>
+            <div class="list_sel"><?php echo $this->Form->input('action', ['options' => $arr, 'type' => 'select', 'label' => false, 'class' => "small form-control", 'id' => 'action']); ?></div>
+            <button type="submit" class="small btn btn-success btn-cons btn-info" onclick="return ajaxActionFunction();" id="submit_action">OK</button>
+        </div>
+        <?php
+        if (isset($keyword) && $keyword != '') {
+            echo $this->Form->input('Users.keyword', ['label' => false, 'type' => 'hidden', 'value' => $keyword]);
+        }
+        ?>
+    <?php echo $this->Form->end(); ?>
+
+    </div>
+<?php } else { ?>
+    <div id="listingJS" style="display: none;" class="alert alert-success alert-block fade in"></div>
+    <div class="admin_no_record">No record found.</div>
+<?php } ?>

@@ -1,0 +1,50 @@
+{
+    "name": "cakephp/app",
+    "description": "CakePHP skeleton app",
+    "homepage": "http://cakephp.org",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "cakephp/cakephp": "^5.4",
+        "mobiledetect/mobiledetectlib": "^2.8",
+        "cakephp/migrations": "^4.0",
+        "cakephp/plugin-installer": "^2.0",
+        "tecnickcom/tcpdf": "^6.11"
+    },
+    "require-dev": {
+        "cakephp/debug_kit": "^5.0",
+        "cakephp/bake": "^3.0"
+    },
+    "suggest": {
+        "phpunit/phpunit": "Allows automated tests to be run without system-wide install.",
+        "cakephp/cakephp-codesniffer": "Allows to check the code against the coding standards used in CakePHP."
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src",
+            "AkkaFacebook\\": "./plugins/AkkaFacebook/src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\Test\\": "tests",
+            "Cake\\Test\\": "./vendor/cakephp/cakephp/tests"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": "App\\Console\\Installer::postInstall",
+        "post-create-project-cmd": "App\\Console\\Installer::postInstall"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "vendor-dir": "vendors",
+        "platform": {
+            "php": "8.5.0"
+        },
+        "allow-plugins": {
+            "cakephp/plugin-installer": true
+        }
+    }
+}

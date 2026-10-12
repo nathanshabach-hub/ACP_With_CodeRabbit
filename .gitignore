@@ -1,0 +1,36 @@
+/vendor/*
+/vendors/
+/config/app.php
+/tmp/*
+/logs/*
+/.local-mysql/
+/.venv/
+/.tmp/
+/Backup/
+/webroot/error_log
+/webroot/files/
+/webroot/uploads/
+
+# local editor/session and shell artifacts
+/.claude/
+/.deploy/
+/.vscode/
+/.idea
+/.mcp.json
+/.bash_profile
+/.bashrc
+/.profile
+/.ripgreprc
+/.zprofile
+/.zshrc
+/.gitconfig
+/.gitmodules
+/.ftpquota
+/.vscode.file.bak
+/*.code-workspace
+
+# local helper binaries/artifacts
+/composer
+/phpinfo.php
+/phpinfo.html
+/error_log

@@ -1,0 +1,508 @@
+<?php echo $this->Html->script('facebox.js'); ?>
+<?php echo $this->Html->css('facebox.css'); ?>
+<style type="text/css">
+    .judge-soccer-kick-wrap { overflow-x: auto; padding-bottom: 8px; }
+    .judge-soccer-kick-table { border-collapse: collapse; font-size: 12px; min-width: 720px; width: 100%; }
+    .judge-soccer-kick-table th,
+    .judge-soccer-kick-table td { border: 1px solid #bbb; padding: 4px 6px; text-align: center; vertical-align: middle; }
+    .judge-soccer-kick-table .sk-kp { background: #e8eaf4; color: #1c2452; font-size: 12px; font-style: italic; }
+    .judge-soccer-kick-table .sk-distance { background: #f5f6fb; color: #333; }
+    .judge-soccer-kick-table .sk-attempt { background: #fafafa; color: #777; font-size: 10px; font-weight: 400; }
+    .judge-soccer-kick-table .sk-attempt-cell { padding: 3px 1px; }
+    .judge-soccer-kick-table .sk-attempt-row { display: flex; align-items: center; justify-content: center; gap: 2px; white-space: nowrap; }
+    .judge-soccer-kick-table .sk-attempt-mark { background: #f8f8f8; border: 1px solid #ccc; border-radius: 3px; color: #666; display: inline-flex; flex: 0 0 24px; font-size: 10px; font-weight: 700; height: 20px; justify-content: center; line-height: 20px; margin: 0; width: 24px; }
+    .judge-soccer-kick-table .sk-attempt-mark.is-success { background: #27ae60; border-color: #1e8449; color: #fff; }
+    .judge-soccer-kick-table .sk-attempt-mark.is-miss { background: #d9534f; border-color: #c9302c; color: #fff; }
+    .judge-soccer-kick-table .sk-best { color: #1c2452; font-size: 14px; font-weight: 700; min-width: 70px; }
+</style>
+<script type="text/javascript">
+    $(document).ready(function ($) {
+        $('.close_image').hide();
+        $('a[rel*=facebox]').facebox({
+            loadingImage: '<?php echo HTTP_IMAGE ?>/loading.gif',
+            closeImage: '<?php echo HTTP_IMAGE ?>/close.png'
+        })
+    })            
+</script>
+<?php
+use Cake\ORM\TableRegistry;
+$this->Evaluationquestions = TableRegistry::getTableLocator()->get('Evaluationquestions');
+$isSquadAdmin = (strtolower((string)$this->request->getSession()->read('admin_username')) === 'squad');
+?>
+<div class="admin_loader" id="loaderID"><?php echo $this->Html->image('loader_large_blue.gif');?></div>
+<?php
+$rowsToRender = isset($judgeEvaluationRows) && is_array($judgeEvaluationRows)
+    ? $judgeEvaluationRows
+    : (isset($judgeevaluations) ? $judgeevaluations->toList() : []);
+?>
+<?php if (!empty($rowsToRender)) { ?>
+    <div class="panel-body">
+        <div class="ersu_message"> <?php echo $this->Flash->render() ?></div>
+        <?php echo $this->Form->create(null, ['id'=>'actionFrom', "method" => "Post"]);  ?>
+        <section id="no-more-tables" class="lstng-section">
+            <div class="topn">
+                <div class="topn_left">Judge Evaluations</div>
+            </div>   
+
+            <div class="tbl-resp-listing">
+                <table id="judge_eval_table" class="table table-bordered table-striped table-condensed cf judge-evaluations-table">
+                    <thead class="cf ajshort">
+                        <tr>
+                            <th class="sorting_paging">Convention</th>
+                            <th class="sorting_paging">Season Year</th>
+                            <th class="sorting_paging">Event Number</th>
+                            <th class="sorting_paging">Event Name</th>
+                            <th class="sorting_paging">Group Event?</th>
+                            <th class="sorting_paging">Group</th>
+                            <th class="sorting_paging">Student</th>
+                            <th class="sorting_paging">School</th>
+                            <th class="sorting_paging">Judge</th>
+                            <th class="sorting_paging">Marks/Score</th>
+                            <th class="sorting_paging">Withdrawn</th>
+                            <th class="sorting_paging">Submitted</th>
+                            <th class="sorting_paging">Submitted Time</th>
+                            <th class="sorting_paging">File</th>
+                            <th class="action_dvv"><i class=" fa fa-gavel"></i> Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        $cntrS = 0;
+                        foreach ($rowsToRender as $datarecord)
+                        {
+                            $cntrS++;
+                        ?>
+                            <tr>
+                                <td data-title="Convention"><?php echo $datarecord->Conventions['name'];?></td>
+                                <td data-title="Season Year"><?php echo $datarecord->season_year;?></td>
+                                <td data-title="Event Number"><?php echo $datarecord->event_id_number;?></td>
+                                <td data-title="Event Name"><?php echo $datarecord->Events['event_name'];?></td>
+                                <td data-title="Group Event?"><?php echo ($datarecord->Events['group_event_yes_no'] == 1) ? "Yes" : "No"; ?></td>
+                                <td data-title="Group">
+                                <?php
+                                if(!empty($datarecord->Eventsubmissions['group_name'])) {
+                                    echo "Group ".$datarecord->Eventsubmissions['group_name'];
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                                </td>
+                                <td data-title="Student">
+                                <?php
+                                if($datarecord->Eventsubmissions['student_id'] > 0) {
+                                    echo $datarecord->Students['first_name'].' '.$datarecord->Students['middle_name'].' '.$datarecord->Students['last_name'];
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                                </td>
+                                <td data-title="School"><?php echo h($combinedSchoolLabels[(int)$datarecord->id] ?? $datarecord->Schools['first_name']); ?></td>
+                                    <td data-title="Judge">
+                                    <?php
+                                        $judgeName = '-';
+                                        if (!empty($datarecord->uploaded_by_user_id) && !empty($judgeUsersById[$datarecord->uploaded_by_user_id])) {
+                                            $judgeName = $judgeUsersById[$datarecord->uploaded_by_user_id];
+                                        } elseif (!empty($datarecord->Judge)) {
+                                            $nameParts = [
+                                                trim(isset($datarecord->Judge['title']) ? (string)$datarecord->Judge['title'] : ''),
+                                                trim(isset($datarecord->Judge['first_name']) ? (string)$datarecord->Judge['first_name'] : ''),
+                                                trim(isset($datarecord->Judge['middle_name']) ? (string)$datarecord->Judge['middle_name'] : ''),
+                                                trim(isset($datarecord->Judge['last_name']) ? (string)$datarecord->Judge['last_name'] : ''),
+                                            ];
+                                            $nameParts = array_values(array_filter($nameParts, function ($part) {
+                                                return $part !== '';
+                                            }));
+                                            $judgeName = trim(implode(' ', $nameParts));
+                                            if ($judgeName === '') {
+                                                $judgeName = trim(isset($datarecord->Judge['email_address']) ? (string)$datarecord->Judge['email_address'] : '');
+                                            }
+                                        }
+                                        if ($judgeName === '-' && !empty($datarecord->uploaded_by_user_id)) {
+                                            $judgeName = 'User #' . (int)$datarecord->uploaded_by_user_id;
+                                        }
+                                        if ($judgeName === '-' && !empty($datarecord->Schools['first_name'])) {
+                                            $judgeName = trim((string)$datarecord->Schools['first_name']) . ' (No Judge Linked)';
+                                        }
+                                        if ($judgeName === '-') {
+                                            $judgeName = 'Unknown (No Judge Saved)';
+                                        }
+                                        echo h($judgeName);
+                                    ?>
+                                    </td>
+                                <td data-title="Marks">
+                                <?php
+                                if($datarecord->Events['event_judging_type'] == 'times') {
+                                    if($datarecord->time_score != NULL && !empty($datarecord->time_score)) {
+                                        $tScore = $datarecord->time_score;
+                                        $tScoreC = $tScore->format('H:i:s.u');
+                                        if (strpos($tScoreC, '.') !== false) {
+                                            list($hms, $micro) = explode('.', $tScoreC);
+                                            $micro = rtrim($micro, '0');
+                                            $formattedTime = ($micro === '') ? $hms : $hms . '.' . $micro;
+                                        } else {
+                                            $formattedTime = $tScoreC;
+                                        }
+                                        echo $formattedTime;
+                                    } else {
+                                        echo '-';
+                                    }
+                                } else if($datarecord->Events['event_judging_type'] == 'distances') {
+                                    $distanceAttempts = [
+                                        $datarecord->distance_attempt_1,
+                                        $datarecord->distance_attempt_2,
+                                        $datarecord->distance_attempt_3,
+                                    ];
+                                    $distanceAttempts = array_filter($distanceAttempts, function ($v) {
+                                        return $v !== null && $v !== '';
+                                    });
+                                    $computedBestDistance = !empty($distanceAttempts) ? max(array_map('floatval', $distanceAttempts)) : null;
+                                    $storedDistanceScore = ($datarecord->distance_score !== null && $datarecord->distance_score !== '') ? (float)$datarecord->distance_score : null;
+
+                                    if ($storedDistanceScore !== null && $storedDistanceScore > 0) {
+                                        echo $datarecord->distance_score;
+                                    } elseif ($computedBestDistance !== null && $computedBestDistance > 0) {
+                                        echo $computedBestDistance;
+                                    } else {
+                                        echo '-';
+                                    }
+                                } else if($datarecord->Events['event_judging_type'] == 'scores') {
+                                    $scoreRaw = $datarecord->all_pos_score;
+                                    $scoreFields = [
+                                        'comp_choice_pos_1_score',
+                                        'comp_choice_pos_2_score',
+                                        'comp_choice_pos_3_score',
+                                        'pos_1_score',
+                                        'pos_2_score',
+                                        'pos_3_score',
+                                        'pos_4_score',
+                                        'pos_5_score',
+                                        'pos_6_score',
+                                        'pos_7_score',
+                                        'pos_8_score',
+                                        'pos_9_score',
+                                    ];
+                                    $scoreBreakdownTotal = 0;
+                                    $hasScoreBreakdown = false;
+                                    foreach ($scoreFields as $scoreField) {
+                                        $scorePart = $datarecord->{$scoreField};
+                                        if ($scorePart !== null && $scorePart !== '') {
+                                            $hasScoreBreakdown = true;
+                                            $scoreBreakdownTotal += (float)$scorePart;
+                                        }
+                                    }
+
+                                    if (($scoreRaw === null || $scoreRaw === '') && !$hasScoreBreakdown) {
+                                        echo '-';
+                                    } elseif ((float)$scoreRaw === 0.0 && !$hasScoreBreakdown) {
+                                        echo '-';
+                                    } elseif ((float)$scoreRaw === 0.0 && $hasScoreBreakdown) {
+                                        echo $scoreBreakdownTotal;
+                                    } else {
+                                        echo $scoreRaw;
+                                    }
+                                } else if($datarecord->Events['event_judging_type'] == 'soccer_kick') {
+                                    echo ($datarecord->soccer_kick_best_kick !== null && $datarecord->soccer_kick_best_kick !== '') ? ($datarecord->soccer_kick_best_kick.'m') : '-';
+                                } else if($datarecord->Events['event_judging_type'] == 'spellings') {
+                                    echo ($datarecord->spelling_score !== null && $datarecord->spelling_score !== '') ? $datarecord->spelling_score : '-';
+                                } else if($datarecord->did_not_attend == 0) {
+                                    echo "$datarecord->total_marks_obtained/$datarecord->total_marks_possible";
+                                } else {
+                                    echo "Did not attend";
+                                }
+                                ?>
+                                </td>
+                                <td data-title="Withdrawn"><?php echo ($datarecord->withdraw_yes_no == 1) ? 'W' : ''; ?></td>
+                                <td data-title="Submitted Date"><?php echo $datarecord->created->format('M d, Y'); ?></td>
+                                <?php
+                                    $submittedTs = 0;
+                                    $submittedTimeDisplay = '-';
+                                    if (!empty($datarecord->created)) {
+                                        if (is_object($datarecord->created) && method_exists($datarecord->created, 'getTimestamp')) {
+                                            $submittedTs = (int)$datarecord->created->getTimestamp();
+                                            $submittedTimeDisplay = $datarecord->created->format('h:i:s A');
+                                        } else {
+                                            $submittedTs = strtotime((string)$datarecord->created);
+                                            if ($submittedTs !== false && $submittedTs > 0) {
+                                                $submittedTimeDisplay = date('h:i:s A', $submittedTs);
+                                            } else {
+                                                $submittedTs = 0;
+                                            }
+                                        }
+                                    }
+                                ?>
+                                <td data-title="Submitted Time" data-order="<?php echo $submittedTs; ?>"><?php echo $submittedTimeDisplay; ?></td>
+                                <td data-title="File">
+                                <?php
+                                    $files = [
+                                        'mediafile_file_system_name' => $datarecord->Events['upload_type'],
+                                        'report' => "Report",
+                                        'score_sheet' => "Score Sheet",
+                                        'additional_documents' => "Additional Documents"
+                                    ];
+                                    foreach($files as $key => $title) {
+                                        $img = $datarecord->Eventsubmissions[$key];
+                                        if(!empty($img) && file_exists(UPLOAD_EVENTS_SUBMISSION_DOCUMENT_PATH.$img)) {
+                                            echo '<a class="btn btn-info btn-xs" target="_blank" title="'.$title.'" href="'.DISPLAY_EVENTS_SUBMISSION_DOCUMENT_PATH.$img.'"><i class="fa fa-cloud-download"></i></a> ';
+                                        }
+                                    }
+                                ?>
+                                </td>
+                                <td data-title="Action">
+                                    <?php if($datarecord->Events['event_judging_type'] == 'times') {
+                                        if (!$isSquadAdmin) {
+                                            echo $this->Html->link('<i class="fa fa-pencil"></i>', ['controller' => 'judgeevaluations', 'action' => 'timesscoreedit',$datarecord->slug], [ 'escape' => false, 'title' => 'Edit Times Score', 'class'=>'btn btn-primary btn-xs']);
+                                        }
+                                    } else { ?>
+                                        <a href="#info<?php echo $datarecord->id; ?>" rel="facebox" title="View Evaluation Questions" class="btn btn-info btn-xs eyee"><i class="fa fa-eye "></i></a>
+                                    <?php }
+                                    if (!$isSquadAdmin) {
+                                        echo $this->Html->link('<i class="fa fa-trash-o"></i>', ['controller' => 'judgeevaluations', 'action' => 'removejudgeevaluation',$datarecord->slug], [ 'escape' => false, 'title' => 'Remove', 'class'=>'btn btn-info btn-xs', 'confirm' => 'Are you sure you want to remove this judge evaluation?']);
+                                    } ?>
+                                </td>
+                            </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <?php echo $this->Form->end(); ?>
+    </div>
+<?php } else { ?>
+    <div class="admin_no_record">No record found.</div>
+<?php } ?>
+
+<?php foreach ($rowsToRender as $datarecord) { ?>
+    <div id="info<?php echo $datarecord->id; ?>" style="display: none;">
+        <div class="nzwh-wrapper">
+            <fieldset class="nzwh">
+                <legend class="head_pop">
+                    <?php 
+                    if($datarecord->Eventsubmissions['student_id'] > 0) { echo 'Student: '.$datarecord->Students['first_name'].' '.$datarecord->Students['last_name']; }
+                    else if(!empty($datarecord->Eventsubmissions['group_name'])) { echo "Group ".$datarecord->Eventsubmissions['group_name']; }
+                    ?>
+                    [Event: <?php echo $datarecord->Events['event_name']; ?> (<?php echo $datarecord->Events['event_id_number']; ?>)]
+                </legend>
+                <div class="drt">
+                    <?php if($datarecord->Events['event_judging_type'] == 'general') { ?>
+                    <table class="table table-bordered">
+                        <tr><td colspan="4">Comments: <?php echo $datarecord->comments ?: 'N/A'; ?></td></tr>
+                        <tr><td>#</td><td>Question</td><td>Max</td><td>Obtained</td></tr>
+                        <?php $cntrQ = 1; foreach($datarecord->Judgeevaluationmarks as $judgevalmark) { 
+                            $questionD = $this->Evaluationquestions->find()->where(["Evaluationquestions.id" => $judgevalmark->question_id])->first(); ?>
+                        <tr>
+                            <td><?php echo $cntrQ++; ?></td>
+                            <td><?php echo $questionD->question; ?></td>
+                            <td><?php echo $judgevalmark->question_marks_possible; ?></td>
+                            <td><?php echo $judgevalmark->question_marks_obtained; ?></td>
+                        </tr>
+                        <?php } ?>
+                        <tr><td colspan="2">&nbsp;</td><td><b><?php echo $datarecord->total_marks_possible; ?></b></td><td><b><?php echo $datarecord->total_marks_obtained; ?></b></td></tr>
+                    </table>
+                    <?php } else if($datarecord->Events['event_judging_type'] == 'distances' && stripos((string)$datarecord->Events['event_name'], 'soccer kick') === false) { ?>
+                    <table class="table table-bordered distance-attempts-table">
+                        <tr><td>1st Attempt</td><td>2nd Attempt</td><td>3rd Attempt</td><td><b>Best Score</b></td></tr>
+                        <?php
+                            $distanceAttemptsPopup = [
+                                $datarecord->distance_attempt_1,
+                                $datarecord->distance_attempt_2,
+                                $datarecord->distance_attempt_3,
+                            ];
+                            $distanceAttemptsPopup = array_filter($distanceAttemptsPopup, function ($v) {
+                                return $v !== null && $v !== '';
+                            });
+                            $computedBestDistancePopup = !empty($distanceAttemptsPopup) ? max(array_map('floatval', $distanceAttemptsPopup)) : null;
+                            $storedDistanceScorePopup = ($datarecord->distance_score !== null && $datarecord->distance_score !== '') ? (float)$datarecord->distance_score : null;
+                            $displayBestDistance = ($storedDistanceScorePopup !== null && $storedDistanceScorePopup > 0)
+                                ? $datarecord->distance_score
+                                : (($computedBestDistancePopup !== null && $computedBestDistancePopup > 0) ? $computedBestDistancePopup : '-');
+                        ?>
+                        <tr><td><?php echo $datarecord->distance_attempt_1 ?></td><td><?php echo $datarecord->distance_attempt_2 ?></td><td><?php echo $datarecord->distance_attempt_3 ?></td><td><b><?php echo $displayBestDistance; ?></b></td></tr>
+                    </table>
+                    <?php } else if($datarecord->Events['event_judging_type'] == 'soccer_kick' || ($datarecord->Events['event_judging_type'] == 'distances' && stripos((string)$datarecord->Events['event_name'], 'soccer kick') !== false)) {
+                        $kickDistances = [10, 15, 20, 25, 30, 35, 40, 45, 50];
+                        $kickGrid = ['1' => [], '2' => [], '3' => []];
+                        $decodedKickGrid = [];
+                        if (!empty($datarecord->soccer_kick_all_kicks)) {
+                            $decodedKickGrid = json_decode($datarecord->soccer_kick_all_kicks, true);
+                            if (is_array($decodedKickGrid)) {
+                                foreach ($decodedKickGrid as $legacyKick) {
+                                    if (is_string($legacyKick) && preg_match('/^(10|15|20|25|30|35|40|45|50)_([123])$/', $legacyKick, $matches)) {
+                                        $kickGrid[$matches[2]][] = (int)$matches[1];
+                                    }
+                                }
+                                foreach (['1', '2', '3'] as $attemptKey) {
+                                    if (isset($decodedKickGrid[$attemptKey]) && is_array($decodedKickGrid[$attemptKey])) {
+                                        $kickGrid[$attemptKey] = array_map('intval', $decodedKickGrid[$attemptKey]);
+                                    }
+                                }
+                            }
+                        }
+                        $kickoffData = $decodedKickGrid['kickoff'] ?? [];
+                        $kickoffDistance = is_array($kickoffData) ? ($kickoffData['distance'] ?? null) : null;
+                        $kickoffAttempts = is_array($kickoffData) && isset($kickoffData['attempts']) && is_array($kickoffData['attempts'])
+                            ? $kickoffData['attempts']
+                            : [];
+                        $bestKick = ($datarecord->soccer_kick_best_kick !== null && $datarecord->soccer_kick_best_kick !== '')
+                            ? (int)$datarecord->soccer_kick_best_kick : null;
+                    ?>
+                    <div class="judge-soccer-kick-wrap">
+                        <table class="judge-soccer-kick-table">
+                            <tr>
+                                <th class="sk-kp" colspan="9">Kicking Position</th>
+                                <th class="sk-kp" rowspan="3">Furthest<br>Distance<br>Kicked</th>
+                                <th class="sk-kp" rowspan="3">Kick-off</th>
+                            </tr>
+                            <tr>
+                                <?php foreach ($kickDistances as $kickDistance) { ?>
+                                    <th class="sk-distance"><?php echo $kickDistance; ?>m</th>
+                                <?php } ?>
+                            </tr>
+                            <tr>
+                                <?php foreach ($kickDistances as $kickDistance) { ?>
+                                    <th class="sk-attempt">Att<br>1&nbsp;2&nbsp;3</th>
+                                <?php } ?>
+                            </tr>
+                            <tr>
+                                <?php foreach ($kickDistances as $kickDistance) { ?>
+                                    <td class="sk-attempt-cell">
+                                        <div class="sk-attempt-row">
+                                        <?php foreach (['1', '2', '3'] as $attemptKey) {
+                                            $successful = in_array($kickDistance, $kickGrid[$attemptKey], true);
+                                            $outcome = $decodedKickGrid['outcomes'][(string)$kickDistance][$attemptKey] ?? ($successful ? 'O' : '?');
+                                            $outcomeClass = $outcome === 'O' ? ' is-success' : ($outcome === 'X' ? ' is-miss' : '');
+                                            $outcomeLabel = $outcome === 'P' ? 'P' : $outcome;
+                                        ?>
+                                            <span class="sk-attempt-mark<?php echo $outcomeClass; ?>" title="Attempt <?php echo $attemptKey; ?>"><?php echo h($outcomeLabel); ?></span>
+                                        <?php } ?>
+                                        </div>
+                                    </td>
+                                <?php } ?>
+                                <td class="sk-best"><?php echo $bestKick !== null ? $bestKick . 'm' : '-'; ?></td>
+                                <td class="sk-best">
+                                    <?php if (in_array((int)$kickoffDistance, $kickDistances, true)) { ?>
+                                        <?php echo (int)$kickoffDistance; ?>m:
+                                        <?php foreach (['1', '2', '3'] as $attemptKey) {
+                                            $kickoffOutcome = $kickoffAttempts[$attemptKey] ?? '?';
+                                            echo h($kickoffOutcome).' ';
+                                        } ?>
+                                    <?php } else { echo '-'; } ?>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <?php } ?>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+<?php } ?>
+
+<script>
+$(document).ready(function() {
+    if ($.fn.dataTable.isDataTable('#judge_eval_table')) {
+        $('#judge_eval_table').DataTable().destroy();
+    }
+
+    var table = $('#judge_eval_table').DataTable({
+        "bPaginate": true,
+        "bLengthChange": false,
+        "autoWidth": false,
+        "scrollX": false,
+        "scrollY": false,
+        "scrollCollapse": false,
+        "pageLength": 100,
+        "deferRender": true,
+        order: [[12, 'desc']],
+    });
+
+    function refreshJudgeEvalColumns() {
+        table.columns.adjust().draw(false);
+    }
+
+    $(window).on('resize', function() {
+        refreshJudgeEvalColumns();
+    });
+
+    $('.sidebar-toggle').on('click', function() {
+        setTimeout(refreshJudgeEvalColumns, 320);
+    });
+
+    function normalizeText(val) {
+        return (val || '').toString().replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    var filterConvention = '';
+    var filterSeason = '';
+    var filterEvent = '';
+
+    $.fn.dataTable.ext.search.push(function(settings, data) {
+        if (!settings || !settings.nTable || settings.nTable.id !== 'judge_eval_table') {
+            return true;
+        }
+
+        var rowConvention = normalizeText(data[0]);
+        var rowSeason = normalizeText(data[1]);
+        var rowEventName = normalizeText(data[3]);
+
+        var passesConvention = !filterConvention || rowConvention === filterConvention;
+        var passesSeason = !filterSeason || rowSeason === filterSeason;
+        var passesEvent = !filterEvent || rowEventName.indexOf(filterEvent) !== -1;
+
+        return passesConvention && passesSeason && passesEvent;
+    });
+
+    function applyJudgeEvalFilters() {
+        filterConvention = normalizeText($('#convention_id option:selected').text());
+        filterSeason = normalizeText($('#season_year').val());
+
+        var eventLabel = $('#event_id option:selected').text();
+        if (normalizeText($('#event_id').val()) === '') {
+            eventLabel = '';
+        }
+        eventLabel = eventLabel.replace(/^\s*\d+\s*[-:|]\s*/i, '');
+        filterEvent = normalizeText(eventLabel);
+
+        table.search($('#judgeeval_keyword').val() || '').draw();
+    }
+
+    $('#judgeeval_apply').on('click', function(e) {
+        e.preventDefault();
+        applyJudgeEvalFilters();
+    });
+
+    $('#convention_id, #season_year, #event_id').on('change', function() {
+        applyJudgeEvalFilters();
+    });
+
+    $('#judgeeval_reset').on('click', function(e) {
+        e.preventDefault();
+        $('#convention_id').val('');
+        $('#season_year').val('');
+        $('#event_id').val('');
+        $('#judgeeval_keyword').val('');
+        filterConvention = '';
+        filterSeason = '';
+        filterEvent = '';
+        table.search('').draw();
+    });
+
+    $('#judgeeval_keyword').on('keyup', function() {
+        table.search($(this).val() || '').draw();
+    });
+
+    $('#adminSearch').on('submit', function(e) {
+        e.preventDefault();
+    });
+});
+</script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<style type="text/css">
+    .judge-evaluations-table {
+        width: 100% !important;
+    }
+    .page-link { color: #1c2452 !important; background-color: #fff !important; }
+    .active>.page-link, .page-link.active { background-color: #1c2452 !important; border-color: #1c2452 !important; color: #fff !important; }
+    .pagination { border-radius: 0rem !important; }
+</style>
