@@ -91,3 +91,5 @@ Then clear caches and warm route cache:
 bin/cake cache clear_all
 bin/cake routes >/dev/null
 ```
+
+CodeRabbit PR test marker (2026-10-12 14:45:28 +1000)
